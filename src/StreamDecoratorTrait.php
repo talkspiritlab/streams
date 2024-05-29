@@ -8,6 +8,8 @@ use GuzzleHttp\Stream\Exception\CannotAttachException;
  */
 trait StreamDecoratorTrait
 {
+    private ?StreamInterface $stream = null;
+
     /**
      * @param StreamInterface $stream Stream to decorate
      */
@@ -16,18 +18,9 @@ trait StreamDecoratorTrait
         $this->stream = $stream;
     }
 
-    /**
-     * Magic method used to create a new stream if streams are not added in
-     * the constructor of a decorator (e.g., LazyOpenStream).
-     */
-    public function __get($name)
+    public function lazyStream(): StreamInterface
     {
-        if ($name == 'stream') {
-            $this->stream = $this->createStream();
-            return $this->stream;
-        }
-
-        throw new \UnexpectedValueException("$name not found on class");
+        return $this->stream ??= $this->createStream();
     }
 
     public function __toString()
@@ -58,25 +51,25 @@ trait StreamDecoratorTrait
      */
     public function __call($method, array $args)
     {
-        $result = call_user_func_array(array($this->stream, $method), $args);
+        $result = call_user_func_array(array($this->lazyStream(), $method), $args);
 
         // Always return the wrapped object if the result is a return $this
-        return $result === $this->stream ? $this : $result;
+        return $result === $this->lazyStream() ? $this : $result;
     }
 
     public function close()
     {
-        $this->stream->close();
+        $this->lazyStream()->close();
     }
 
     public function getMetadata($key = null)
     {
-        return $this->stream->getMetadata($key);
+        return $this->lazyStream()->getMetadata($key);
     }
 
     public function detach()
     {
-        return $this->stream->detach();
+        return $this->lazyStream()->detach();
     }
 
     public function attach($stream)
@@ -86,47 +79,47 @@ trait StreamDecoratorTrait
 
     public function getSize()
     {
-        return $this->stream->getSize();
+        return $this->lazyStream()->getSize();
     }
 
     public function eof()
     {
-        return $this->stream->eof();
+        return $this->lazyStream()->eof();
     }
 
     public function tell()
     {
-        return $this->stream->tell();
+        return $this->lazyStream()->tell();
     }
 
     public function isReadable()
     {
-        return $this->stream->isReadable();
+        return $this->lazyStream()->isReadable();
     }
 
     public function isWritable()
     {
-        return $this->stream->isWritable();
+        return $this->lazyStream()->isWritable();
     }
 
     public function isSeekable()
     {
-        return $this->stream->isSeekable();
+        return $this->lazyStream()->isSeekable();
     }
 
     public function seek($offset, $whence = SEEK_SET)
     {
-        return $this->stream->seek($offset, $whence);
+        return $this->lazyStream()->seek($offset, $whence);
     }
 
     public function read($length)
     {
-        return $this->stream->read($length);
+        return $this->lazyStream()->read($length);
     }
 
     public function write($string)
     {
-        return $this->stream->write($string);
+        return $this->lazyStream()->write($string);
     }
 
     /**
